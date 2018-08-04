@@ -10,7 +10,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 
-class ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   final TextEditingController _textController = new TextEditingController();
   final List<ChatMessage> _chatMessages = <ChatMessage>[];
@@ -32,6 +32,14 @@ class ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    for (ChatMessage msg in _chatMessages) {
+      msg.animationController.dispose();
+    }
+    super.dispose();
   }
 
   Widget _buildTextComposer() {
@@ -72,9 +80,20 @@ class ChatScreenState extends State<ChatScreen> {
 
 
   void _handleSubmitted(String text) {
+
+    ChatMessage message = new ChatMessage(
+      text: text,
+      animationController: new AnimationController(
+          vsync: this,
+          duration: new Duration(milliseconds: 700)
+      ),
+    );
+
     setState(() {
-      _chatMessages.insert(0, new ChatMessage(text: text));
+      _chatMessages.insert(0, message);
     });
+
+    message.animationController.forward();
     _textController.clear();
   }
 
@@ -85,11 +104,20 @@ class ChatMessage extends StatelessWidget {
 
   final String text;
   final String _name = 'My name';
+  final AnimationController animationController;
 
-  ChatMessage({this.text});
+  ChatMessage({this.text, this.animationController});
 
   @override
   Widget build(BuildContext context) {
+    return new SizeTransition(
+      sizeFactor: new CurvedAnimation(parent: animationController, curve: Curves.easeOut),
+      axisAlignment: 0.0,
+      child: _buildMessageRow(context),
+    );
+  }
+
+  Widget _buildMessageRow(BuildContext context) {
     return new Container(
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       child: new Row(
